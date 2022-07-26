@@ -1,0 +1,25 @@
+#!/bin/bash
+
+## Description: Fetch and import production database
+## Usage: import-production-database
+## Example: "ddev import-production-database"
+
+SSH_CREDENTIALS="my-name@my-host.de"
+
+DB_USER="my-db-user"
+DB_PASSWORD="my-password"
+DB_HOSTNAME="localhost"
+DB_DATABASE="my-db"
+
+# save current database
+ddev snapshot
+
+# fetch and import production database
+ssh $SSH_CREDENTIALS "mysqldump -u$DB_USER -p$DB_PASSWORD -h$DB_HOSTNAME -l --opt --skip-extended-insert $DB_DATABASE | gzip -3 -c" > production-database.sql.gz && \
+ddev import-db --src=production-database.sql.gz && \
+rm production-database.sql.gz
+
+# for TYPO3: clear all caches and others
+ddev composer dumpautoload
+ddev typo3cms database:updateschema
+ddev typo3cms cache:flush
